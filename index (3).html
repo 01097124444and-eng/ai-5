@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>فريق الذكاء الاصطناعي</title>
+<style>
+:root{--bg:#0c0e13;--panel:#13161d;--panel2:#181c25;--line:#232834;--text:#e7e9ef;--dim:#7f8797;--accent:#6f8cff;
+--manager:#a78bfa;--coder:#38bdf8;--analyst:#f5b942;--formatter:#4ade80;--bad:#f87171;--side:290px}
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Cairo","Segoe UI",Tahoma,sans-serif}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);overflow:hidden}
+button{color:inherit;background:none;border:0;cursor:pointer;font-family:inherit}
+.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.shell{display:flex;height:100%}
+
+/* ===== القائمة الجانبية ===== */
+aside{width:var(--side);flex-shrink:0;background:var(--panel);border-inline-end:1px solid var(--line);display:flex;flex-direction:column;
+  padding:14px 12px;gap:10px;transition:margin .3s,transform .3s;padding-top:calc(14px + env(safe-area-inset-top,0))}
+.shell.closed aside{margin-inline-start:calc(var(--side) * -1)}
+.side-h{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 6px;font-weight:700}
+.new{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:var(--accent);color:#0b1020;font-weight:700;font-size:.92rem}
+.new:hover{filter:brightness(1.1)}
+.search{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:var(--dim)}
+.search input{flex:1;background:none;border:0;outline:0;color:var(--text);padding:10px 0;font-size:.88rem;font-family:inherit}
+.navb{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;font-size:.9rem;color:var(--text);position:relative}
+.navb:hover,.hi:hover{background:var(--panel2)}
+.navb .cnt{margin-inline-start:auto;font-size:.68rem;color:var(--dim);background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:1px 7px}
+.label{font-size:.72rem;color:var(--dim);padding:8px 12px 2px}
+#hist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.hi{padding:10px 12px;border-radius:10px;font-size:.86rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#c5cad6}
+.hi.on{background:var(--panel2);color:#fff}
+#veil{display:none}
+@media(max-width:800px){
+  aside{position:fixed;inset-block:0;inset-inline-start:0;z-index:30;transform:translateX(100%);margin:0!important;box-shadow:0 0 40px rgba(0,0,0,.6)}
+  .shell.open aside{transform:none}
+  .shell.open #veil{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20}
+}
+
+/* ===== المنطقة الرئيسية ===== */
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:8px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0));border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:1rem;font-weight:700;flex:1}
+.ib{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:var(--dim);transition:.2s;flex-shrink:0}
+.ib:hover{background:var(--panel2);color:var(--text)}
+#mode{font-size:.74rem;color:var(--dim);display:flex;align-items:center;gap:7px}
+#mode::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--dim)}
+#mode.live{color:var(--formatter)}#mode.live::before{background:var(--formatter)}
+#mode.err{color:var(--bad)}#mode.err::before{background:var(--bad)}
+
+.agents{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.agent{--c:var(--dim);display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--panel);
+  font-size:.8rem;white-space:nowrap;opacity:.65;transition:.25s}
+.agent .dot{width:8px;height:8px;border-radius:50%;background:var(--c);opacity:.5}
+.agent small{color:var(--dim);font-size:.68rem}
+.agent.active{opacity:1;border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--panel))}
+.agent.active .dot{opacity:1;animation:ring 1.4s ease-out infinite}
+.agent.active small{color:var(--c)}
+.agent.ok{opacity:1;border-color:var(--formatter)}
+.agent.ok small{color:var(--formatter)}
+.agent.fail{opacity:.55;border-color:var(--bad)}
+.agent.fail small{color:var(--bad)}
+@keyframes ring{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 60%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+
+#chat{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth;width:100%;max-width:820px;margin:0 auto}
+#chat::-webkit-scrollbar{width:6px}#chat::-webkit-scrollbar-thumb{background:#2a303d;border-radius:9px}
+.msg{max-width:88%;padding:12px 16px;border-radius:14px;line-height:1.8;font-size:.95rem;white-space:pre-wrap;word-wrap:break-word;animation:in .25s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.user{align-self:flex-start;background:var(--accent);color:#0b1020;font-weight:600;border-bottom-right-radius:4px}
+.ai{align-self:flex-end;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.ai.warn{border-color:var(--bad)}
+.badge{display:inline-block;font-size:.68rem;font-weight:600;padding:1px 9px;margin:0 0 8px 6px;border-radius:6px;background:color-mix(in srgb,currentColor 12%,transparent)}
+.chip{display:inline-block;font-size:.76rem;padding:2px 10px;margin:6px 0 0 6px;border-radius:8px;background:rgba(0,0,0,.18)}
+.ai pre{direction:ltr;text-align:left;background:#090b10;border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0;overflow-x:auto;font:.82rem/1.6 Consolas,monospace;white-space:pre;color:#cfd8ea}
+.typing span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--dim);animation:bl 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,60%,100%{opacity:.3}30%{opacity:1}}
+
+/* ===== شريط الكتابة ===== */
+#pend{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px;width:100%;max-width:820px;margin:0 auto}
+#pend .chip{background:var(--panel2);border:1px solid var(--line);margin:0;cursor:pointer}
+#bar{display:flex;align-items:center;gap:6px;width:100%;max-width:820px;margin:0 auto;padding:10px 16px calc(14px + env(safe-area-inset-bottom,0))}
+.field{flex:1;display:flex;align-items:center;gap:4px;padding:4px;border-radius:16px;background:var(--panel);border:1px solid var(--line);transition:border-color .2s}
+.field:focus-within{border-color:var(--accent)}
+#input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font-size:.98rem;padding:10px 6px;font-family:inherit}
+#input::placeholder{color:var(--dim)}
+#rec{display:none;flex:1;align-items:center;gap:10px;padding:10px 8px;font-size:.92rem}
+#rec i{width:10px;height:10px;border-radius:50%;background:var(--bad);animation:rp 1s infinite}
+@keyframes rp{0%{box-shadow:0 0 0 0 rgba(248,113,113,.7)}100%{box-shadow:0 0 0 10px transparent}}
+#cancel{margin-inline-start:auto;font-size:.8rem;color:var(--dim);padding:4px 10px}
+#bar.recording #input{display:none}#bar.recording #rec{display:flex}
+#bar.recording #mic{background:var(--bad);color:#fff}
+#send{width:46px;height:46px;border-radius:14px;background:var(--accent);color:#0b1020;display:grid;place-items:center;transition:filter .2s;flex-shrink:0}
+#send:hover{filter:brightness(1.12)}#send:disabled{opacity:.4;cursor:not-allowed}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:8px 18px;border-radius:10px;font-size:.85rem;opacity:0;pointer-events:none;transition:.3s;z-index:70}
+#toast.on{opacity:1}
+
+/* ===== مودال مفاتيح API ===== */
+.modal{position:fixed;inset:0;background:rgba(4,5,9,.7);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+.modal.on{display:flex}
+.modal-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.modal-card::-webkit-scrollbar{width:6px}.modal-card::-webkit-scrollbar-thumb{background:#2a303d;border-radius:9px}
+.modal-h{display:flex;justify-content:space-between;align-items:center}
+.modal-h b{font-size:1rem}
+.modal-note{font-size:.78rem;color:var(--dim);line-height:1.7;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+#keyRows{display:flex;flex-direction:column;gap:8px}
+.krow{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:6px}
+.krow select{background:none;border:0;color:var(--text);font-size:.8rem;width:112px;flex-shrink:0;padding:6px 4px;font-family:inherit}
+.krow input[type=text],.krow input[type=password]{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font-size:.85rem;padding:6px 4px;direction:ltr;text-align:left;font-family:monospace}
+.krow input::placeholder{color:var(--dim);font-family:"Cairo",sans-serif}
+.krow .ib{width:34px;height:34px;border-radius:9px}
+.krow input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);flex-shrink:0}
+.klabel{font-size:.72rem;color:var(--dim);white-space:nowrap}
+@media(max-width:460px){.krow select{width:84px;font-size:.72rem}.klabel{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+  <div id="veil"></div>
+
+  <aside>
+    <div class="side-h"><span>فريق الذكاء</span>
+      <button class="ib" id="closeSide" aria-label="إغلاق"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <button class="new" id="newChat"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>محادثة جديدة</button>
+    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="بحث في المحادثات"></div>
+    <button class="navb" id="openKeys"><svg class="i" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>مفاتيح API<span class="cnt" id="keysCount">0</span></button>
+    <button class="navb" data-toast="المكتبة"><svg class="i" viewBox="0 0 24 24"><path d="M5 4v16M10 4v16M15 5l4 14"/></svg>المكتبة</button>
+    <button class="navb" data-toast="دفاتر الملاحظات"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6"/></svg>دفاتر الملاحظات</button>
+    <div class="label">المحادثات الأخيرة</div>
+    <div id="hist"></div>
+  </aside>
+
+  <main>
+    <header>
+      <button class="ib" id="burger" aria-label="القائمة"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <h1>فريق الذكاء الاصطناعي</h1>
+      <span id="mode">وضع تجريبي</span>
+    </header>
+    <div class="agents" id="agents"></div>
+
+    <div id="chat"></div>
+    <div id="pend"></div>
+
+    <div id="bar">
+      <input type="file" id="file" multiple hidden accept="image/*,.pdf,.txt,.py,.js,.html,.csv">
+      <div class="field">
+        <button class="ib" id="attach" aria-label="رفع ملف"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <input id="input" placeholder="اكتب رسالتك..." autocomplete="off">
+        <div id="rec"><i></i><span id="tm">جاري التسجيل 0:00</span><button id="cancel">إلغاء</button></div>
+        <button class="ib" id="mic" aria-label="تسجيل صوتي"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      </div>
+      <button id="send" aria-label="إرسال"><svg class="i" viewBox="0 0 24 24"><path d="M20 12L4 4l6 16 3-7z"/></svg></button>
+    </div>
+  </main>
+</div>
+
+<!-- مودال مفاتيح API -->
+<div class="modal" id="keysModal">
+  <div class="modal-card">
+    <div class="modal-h"><b>مفاتيح API (حتى 10 مفاتيح)</b>
+      <button class="ib" id="closeKeys"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="modal-note">المفاتيح بتتحفظ في متصفحك بس (localStorage). المتصفح بيكلم Gemini/Claude مباشرة من غير أي سيرفر وسيط. فعّل المفتاح بالتيك، واختار نوعه من القايمة.</div>
+    <div id="keyRows"></div>
+    <button class="new" id="saveKeys"><svg class="i" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>حفظ المفاتيح</button>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ===== الموقع ده مستقل بالكامل: مفيش سيرفر خالص. المتصفح بيكلم كل مزوّد مباشرة ===== */
+const MAX_ROUNDS = 3;
+const DONE_TOKEN = "PROJECT_DONE";
+
+function friendlyError(provider, status, bodyText){
+  if (status === 401 || status === 403) return `مفتاح ${provider} غلط أو منتهي الصلاحية (خطأ ${status})`;
+  if (status === 429) return `وصلت لحد الاستخدام المسموح لمفتاح ${provider} (خطأ 429)`;
+  if (status === 400 && /credit/i.test(bodyText)) return `حساب ${provider} رصيده صفر. لازم تضيف رصيد (billing) في الموقع الأول.`;
+  return `مشكلة اتصال بـ ${provider} (خطأ ${status}): ${(bodyText || "").slice(0,120)}`;
+}
+
+async function callGemini(key, prompt){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
+  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(friendlyError("Gemini", r.status, JSON.stringify(j)));
+  return j.candidates[0].content.parts[0].text;
+}
+
+async function callClaude(key, prompt){
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{"Content-Type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"},
+    body: JSON.stringify({model:"claude-3-5-sonnet-latest", max_tokens:1500, messages:[{role:"user", content:prompt}]})
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(friendlyError("Claude", r.status, JSON.stringify(j)));
+  return j.content[0].text;
+}
+
+async function callCohere(key, prompt){
+  const r = await fetch("https://api.cohere.com/v2/chat", {
+    method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${key}`},
+    body: JSON.stringify({model:"command-r-plus", messages:[{role:"user", content:prompt}]})
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(friendlyError("Cohere", r.status, JSON.stringify(j)));
+  return j.message.content[0].text;
+}
+
+/* المزودين اللي بيتكلموا بنفس أسلوب OpenAI (endpoint + model بس بيختلفوا) */
+const OPENAI_COMPAT = {
+  groq:        {base:"https://api.groq.com/openai/v1/chat/completions", model:"llama-3.3-70b-versatile"},
+  openai:      {base:"https://api.openai.com/v1/chat/completions", model:"gpt-4o-mini"},
+  mistral:     {base:"https://api.mistral.ai/v1/chat/completions", model:"mistral-large-latest"},
+  deepseek:    {base:"https://api.deepseek.com/chat/completions", model:"deepseek-chat"},
+  openrouter:  {base:"https://openrouter.ai/api/v1/chat/completions", model:"openai/gpt-4o-mini"},
+  huggingface: {base:"https://router.huggingface.co/v1/chat/completions", model:"meta-llama/Llama-3.3-70B-Instruct"},
+};
+async function callOpenAICompat(providerLabel, base, model, key, prompt){
+  const r = await fetch(base, {
+    method:"POST", headers:{"Content-Type":"application/json", "Authorization":`Bearer ${key}`},
+    body: JSON.stringify({model, messages:[{role:"user", content:prompt}]})
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(friendlyError(providerLabel, r.status, JSON.stringify(j)));
+  return j.choices[0].message.content;
+}
+
+/* بنحدد المزوّد من الاسم اللي اختاره في القايمة أولًا (أكيد 100%)، وبس لو الاسم "مخصّص"
+   أو مش متعرّف، نحاول نخمّن من شكل المفتاح نفسه */
+function detectProvider(name, key){
+  const n = (name || "").toLowerCase();
+  if (n === "gemini" || key.startsWith("AIza")) return "gemini";
+  if (n === "claude" || key.startsWith("sk-ant")) return "claude";
+  if (n === "cohere") return "cohere";
+  if (OPENAI_COMPAT[n]) return n;
+  if (key.startsWith("gsk_")) return "groq";
+  if (key.startsWith("sk-or-")) return "openrouter";
+  if (key.startsWith("sk-proj-") || key.startsWith("sk-")) return "openai";
+  return null; // مش عارفين نوعه
+}
+
+async function callSingleKey(keyItem, prompt){
+  const name = keyItem.name, key = (keyItem.value || "").trim();
+  if (!key) return {provider:name, ok:false, reply:"مفتاح فارغ"};
+  const provider = detectProvider(name, key);
+  try {
+    let text;
+    if (provider === "gemini") text = await callGemini(key, prompt);
+    else if (provider === "claude") text = await callClaude(key, prompt);
+    else if (provider === "cohere") text = await callCohere(key, prompt);
+    else if (provider && OPENAI_COMPAT[provider]) {
+      const cfg = OPENAI_COMPAT[provider];
+      text = await callOpenAICompat(name, cfg.base, cfg.model, key, prompt);
+    } else {
+      throw new Error(`نوع المفتاح "${name}" مش متعرّف. اختار نوع صحيح من القايمة (Gemini/Claude/Groq/...) بدل "مخصّص".`);
+    }
+    return {provider:name, ok:true, reply:text};
+  } catch(e){ return {provider:name, ok:false, reply: e.message || String(e)}; }
+}
+
+function buildTeamPrompt(task, context, roundNo){
+  const block = context || "(لسه الجولة الأولى، محدش بدأ في المشروع)";
+  return `إنت عضو في فريق ذكاء اصطناعي بيشتغلوا مع بعض على نفس المشروع.\n`
+    + `هدف المشروع: ${task}\n\n`
+    + `شغل باقي الفريق لحد دلوقتي (الجولة ${roundNo}):\n${block}\n\n`
+    + `ساهم بجزئك: كمّل، صحّح، أو حسّن على اللي فوق (متكررش نفس الكلام).\n`
+    + `لو انت شايف إن المشروع بقى كامل وجاهز للتسليم النهائي، ابدأ ردك بالكلمة دي بالظبط في أول سطر: ${DONE_TOKEN}\n`
+    + `وبعدها اكتب النسخة النهائية الكاملة بالمصري. لو لسه ناقص حاجة، كمل عادي من غير الكلمة دي.`;
+}
+
+/* بيشغّل الفريق كله محليًا في المتصفح، جولة ورا التانية، لحد ما يخلصوا أو يوصلوا الحد الأقصى */
+async function runTeam(task, activeKeys){
+  let context = "", lastResults = [], finalReply = null, roundsUsed = 0;
+
+  for (let round = 1; round <= MAX_ROUNDS; round++){
+    roundsUsed = round;
+    const prompt = buildTeamPrompt(task, context, round);
+    const results = await Promise.all(activeKeys.map(k => callSingleKey(k, prompt)));
+    lastResults = results;
+    const successes = results.filter(r => r.ok);
+
+    const done = successes.find(r => r.reply.trim().toUpperCase().startsWith(DONE_TOKEN));
+    if (done){
+      finalReply = done.reply.trim().replace(new RegExp("^" + DONE_TOKEN + "\\s*:?\\s*", "i"), "").trim();
+      break;
+    }
+    if (!successes.length) break;
+    context = successes.map(r => `[${r.provider}]\n${r.reply}`).join("\n\n");
+  }
+
+  if (finalReply === null){
+    const successes = lastResults.filter(r => r.ok);
+    if (!successes.length){
+      const details = lastResults.map(r => `- ${r.provider}: ${r.reply}`).join("\n");
+      return {ok:false, rounds_used:roundsUsed, results:lastResults, reply:`للأسف كل المفاتيح فشلت:\n${details}`};
+    }
+    const idx = lastResults.indexOf(successes[0]);
+    const synthPrompt = "دمج شغل الفريق ده كله في نسخة نهائية واحدة متكاملة وجاهزة للتسليم، بالمصري البسيط:\n\n" + context;
+    const synth = await callSingleKey(activeKeys[idx], synthPrompt);
+    finalReply = synth.ok ? synth.reply : context;
+  }
+  return {ok:true, rounds_used:roundsUsed, results:lastResults, reply:finalReply};
+}
+
+const DISPLAY = {gemini:"Gemini", groq:"Groq", openai:"OpenAI", claude:"Claude", mistral:"Mistral",
+  cohere:"Cohere", deepseek:"DeepSeek", openrouter:"OpenRouter", huggingface:"HuggingFace", custom:"مخصّص"};
+const PALETTE = ["#a78bfa","#38bdf8","#f5b942","#fb7185","#34d399","#60a5fa","#f472b6","#facc15","#2dd4bf","#c084fc"];
+const FORMATTER_COLOR = "#4ade80";
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const fmt = t => esc(t).replace(/```[\w]*\n?([\s\S]*?)```/g, "<pre>$1</pre>");
+const isMobile = () => matchMedia("(max-width:800px)").matches;
+
+/* ===== مفاتيح الـ API (10 خانات، محفوظة في localStorage) ===== */
+const KEYS_KEY = "multi_agent_keys";
+const PROVIDERS = ["gemini","groq","openai","claude","mistral","cohere","deepseek","openrouter","huggingface","custom"];
+let apiKeys = [];
+try { apiKeys = JSON.parse(localStorage.getItem(KEYS_KEY)) || []; } catch(e) {}
+if (!apiKeys.length) apiKeys = PROVIDERS.map(p => ({name:p, value:"", active:true}));
+while (apiKeys.length < 10) apiKeys.push({name:"custom", value:"", active:true});
+
+function renderKeyRows(){
+  const wrap = $("keyRows"); wrap.innerHTML = "";
+  apiKeys.forEach((k, i) => {
+    const row = document.createElement("div"); row.className = "krow";
+    row.innerHTML = `
+      <input type="checkbox" ${k.active ? "checked" : ""} data-i="${i}" data-f="active" title="مفعل">
+      <select data-i="${i}" data-f="name">${PROVIDERS.map(p => `<option value="${p}" ${p===k.name?"selected":""}>${p}</option>`).join("")}</select>
+      <input type="password" placeholder="الصق المفتاح هنا" value="${k.value ? esc(k.value) : ""}" data-i="${i}" data-f="value">
+      <button class="ib eye" data-i="${i}" title="إظهار/إخفاء"><svg class="i" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>`;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll("[data-f=active]").forEach(el => el.onchange = e => { apiKeys[+e.target.dataset.i].active = e.target.checked; });
+  wrap.querySelectorAll("[data-f=name]").forEach(el => el.onchange = e => { apiKeys[+e.target.dataset.i].name = e.target.value; });
+  wrap.querySelectorAll("[data-f=value]").forEach(el => el.oninput = e => { apiKeys[+e.target.dataset.i].value = e.target.value; });
+  wrap.querySelectorAll(".eye").forEach(el => el.onclick = e => {
+    const inp = e.currentTarget.previousElementSibling;
+    inp.type = inp.type === "password" ? "text" : "password";
+  });
+}
+function updateKeysCount(){
+  $("keysCount").textContent = apiKeys.filter(k => k.active && k.value.trim()).length;
+}
+function saveKeys(){
+  localStorage.setItem(KEYS_KEY, JSON.stringify(apiKeys));
+  updateKeysCount(); toast("اتحفظت المفاتيح");
+  $("keysModal").classList.remove("on");
+}
+function getActiveKeys(){
+  const out = {};
+  apiKeys.forEach(k => { if (k.active && k.value.trim()) out[k.name] = k.value.trim(); });
+  return out;
+}
+$("openKeys").onclick = () => { renderKeyRows(); $("keysModal").classList.add("on"); };
+$("closeKeys").onclick = () => $("keysModal").classList.remove("on");
+$("keysModal").addEventListener("click", e => { if (e.target.id === "keysModal") $("keysModal").classList.remove("on"); });
+$("saveKeys").onclick = saveKeys;
+updateKeysCount();
+
+/* ===== المحادثات (بتتحفظ في المتصفح) ===== */
+const KEY = "multi_agent_chats";
+let chats = [];
+try { chats = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) {}
+if (!chats.length) chats = [
+  {id:1, title:"خطة إنشاء مشروع العطارة", msgs:[]},
+  {id:2, title:"عيوب HP EliteBook", msgs:[]}
+];
+let cur = chats[0], busy = false, files = [];
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(chats)); } catch(e) {} };
+
+function bubble(html, cls){
+  const d = document.createElement("div");
+  d.className = "msg " + cls; d.innerHTML = html;
+  $("chat").appendChild(d); $("chat").scrollTop = $("chat").scrollHeight;
+  return d;
+}
+function render(){
+  $("chat").innerHTML = "";
+  if (!cur.msgs.length) bubble("أهلًا بيك! اكتب المشروع أو الطلب، والفريق هيشتغلوا مع بعض على كذا جولة لحد ما يخلصوا.", "ai");
+  cur.msgs.forEach(m => bubble(m.html, m.cls));
+  renderHist();
+}
+function renderHist(){
+  const q = $("q").value.trim();
+  $("hist").innerHTML = "";
+  chats.filter(c => c.title.includes(q)).forEach(c => {
+    const d = document.createElement("div");
+    d.className = "hi" + (c === cur ? " on" : ""); d.textContent = c.title;
+    d.onclick = () => { cur = c; render(); if (isMobile()) toggleSide(false); };
+    $("hist").appendChild(d);
+  });
+}
+function newChat(){
+  cur = {id: Date.now(), title:"محادثة جديدة", msgs:[]};
+  chats.unshift(cur); save(); render();
+  if (isMobile()) toggleSide(false);
+  $("input").focus();
+}
+
+/* ===== القائمة الجانبية ===== */
+function toggleSide(force){
+  const s = $("shell");
+  if (isMobile()) s.classList.toggle("open", force ?? !s.classList.contains("open"));
+  else s.classList.toggle("closed", force === undefined ? !s.classList.contains("closed") : !force);
+}
+$("burger").onclick = () => toggleSide();
+$("closeSide").onclick = () => toggleSide(false);
+$("veil").onclick = () => toggleSide(false);
+$("newChat").onclick = newChat;
+$("q").oninput = renderHist;
+function toast(t){ $("toast").textContent = t; $("toast").classList.add("on"); setTimeout(() => $("toast").classList.remove("on"), 1800); }
+document.querySelectorAll("[data-toast]").forEach(b => b.onclick = () => toast(b.dataset.toast + " — قريبًا"));
+
+/* ===== شريط الوكلاء (بطاقة لكل مفتاح فعّال + بطاقة المنسّق) ===== */
+const dots = '<span class="typing"><span></span><span></span><span></span></span>';
+function labelFor(name, idx){ return (DISPLAY[name] || name) + (idx > 0 ? " " + (idx + 1) : ""); }
+function buildAgentBar(activeArr){
+  const wrap = $("agents"); wrap.innerHTML = "";
+  const seen = {};
+  activeArr.forEach((k, i) => {
+    seen[k.name] = (seen[k.name] || 0);
+    const el = document.createElement("div");
+    el.className = "agent"; el.dataset.a = "p" + i;
+    el.style.setProperty("--c", PALETTE[i % PALETTE.length]);
+    el.innerHTML = `<span class="dot"></span>${labelFor(k.name, seen[k.name])}<small>في الانتظار</small>`;
+    wrap.appendChild(el);
+    seen[k.name]++;
+  });
+  const f = document.createElement("div");
+  f.className = "agent"; f.dataset.a = "formatter";
+  f.style.setProperty("--c", FORMATTER_COLOR);
+  f.innerHTML = `<span class="dot"></span>المنسّق<small>في الانتظار</small>`;
+  wrap.appendChild(f);
+}
+function setWorking(ids){
+  ids.forEach(id => {
+    const el = document.querySelector(`.agent[data-a="${id}"]`);
+    if (el) { el.classList.add("active"); el.querySelector("small").textContent = "بيتعاونوا..."; }
+  });
+}
+function setDone(id, ok){
+  const el = document.querySelector(`.agent[data-a="${id}"]`);
+  if (!el) return;
+  el.classList.remove("active"); el.classList.add(ok ? "ok" : "fail");
+  el.querySelector("small").textContent = ok ? "تم ✓" : "فشل ✕";
+}
+const badge = (label, color) => `<span class="badge" style="color:${color}">${label}</span><br>`;
+
+function demo(){
+  return {ok:true, rounds_used:0, results:[{provider:"demo", ok:true}],
+    reply:"محتاجين على الأقل مفتاح واحد فعّال. افتح (مفاتيح API) من القائمة الجانبية وحط مفتاح Gemini أو Claude."};
+}
+
+/* ===== الإرسال: الفريق كله بيشتغل من جوه المتصفح، من غير أي سيرفر ===== */
+async function run(userHtml, apiText){
+  if (busy) return; busy = true; $("send").disabled = true;
+  cur.msgs.push({cls:"user", html:userHtml}); bubble(userHtml, "user");
+  if (cur.title === "محادثة جديدة") cur.title = apiText.slice(0, 32) || "محادثة";
+  chats = [cur, ...chats.filter(c => c !== cur)]; renderHist();
+
+  const activeArr = apiKeys.filter(k => k.active && k.value.trim());
+  buildAgentBar(activeArr);
+  const box = bubble(dots, "ai");
+
+  if (!activeArr.length){
+    const d = demo();
+    box.innerHTML = fmt(d.reply); box.classList.add("warn");
+    cur.msgs.push({cls:"ai warn", html: fmt(d.reply)}); save();
+    busy = false; $("send").disabled = false; return;
+  }
+
+  setWorking(activeArr.map((_, i) => "p" + i));
+  const data = await runTeam(apiText, activeArr);
+
+  $("mode").textContent = data.ok ? `اشتغلوا مع بعض (${data.rounds_used || 1} جولة)` : "في مشكلة بالمفاتيح";
+  $("mode").className = data.ok ? "live" : "err";
+
+  (data.results || []).forEach((res, i) => { if (activeArr[i]) setDone("p" + i, res.ok); });
+
+  setWorking(["formatter"]); await sleep(400);
+  setDone("formatter", data.ok !== false);
+
+  const chips = (data.results || []).map((res, i) =>
+    `<span class="chip" style="color:${PALETTE[i % PALETTE.length]}">${labelFor(res.provider, 0)} ${res.ok ? "✓" : "✕"}</span>`
+  ).join("");
+  const html = (chips ? chips + "<br>" : "") + fmt(data.reply || "حصل خطأ غير متوقع.");
+  box.innerHTML = html; box.classList.toggle("warn", data.ok === false);
+  cur.msgs.push({cls:"ai" + (data.ok === false ? " warn" : ""), html}); save();
+  busy = false; $("send").disabled = false; $("input").focus();
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+function send(){
+  const t = $("input").value.trim();
+  if (!t && !files.length) return;
+  const chips = files.map(f => `<span class="chip">ملف: ${esc(f.name)}</span>`).join("");
+  const html = esc(t) + (t && chips ? "<br>" : "") + chips;
+  $("input").value = ""; files = []; renderFiles();
+  run(html, t || "تم رفع ملف");
+}
+$("send").onclick = send;
+$("input").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+
+/* ===== رفع الملفات ===== */
+$("attach").onclick = () => $("file").click();
+$("file").onchange = e => { files.push(...e.target.files); e.target.value = ""; renderFiles(); };
+function renderFiles(){
+  $("pend").innerHTML = "";
+  files.forEach((f, i) => {
+    const c = document.createElement("span");
+    c.className = "chip"; c.title = "اضغط للحذف"; c.textContent = f.name + "  ×";
+    c.onclick = () => { files.splice(i, 1); renderFiles(); };
+    $("pend").appendChild(c);
+  });
+}
+
+/* ===== التسجيل الصوتي (تجريبي) ===== */
+let recT = null, t0 = 0;
+const clock = s => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+function stopRec(sendIt){
+  clearInterval(recT); recT = null;
+  $("bar").classList.remove("recording");
+  const s = Math.round((Date.now() - t0) / 1000);
+  if (sendIt) run(`<span class="chip">رسالة صوتية ${clock(s)}</span>`, "رسالة صوتية");
+}
+$("mic").onclick = () => {
+  if (recT) return stopRec(true);
+  t0 = Date.now(); $("bar").classList.add("recording");
+  $("tm").textContent = "جاري التسجيل 0:00";
+  recT = setInterval(() => $("tm").textContent = "جاري التسجيل " + clock(Math.round((Date.now() - t0) / 1000)), 250);
+};
+$("cancel").onclick = () => stopRec(false);
+
+render();
+</script>
+</body>
+</html>
